@@ -1,1 +1,8 @@
 
+O código fornecido é um script em JavaScript que usa o Google Apps Script para interagir com o Google Classroom e uma planilha do Google Sheets.
+
+A função listarDisciplinas() obtém informações sobre os cursos do Google Classroom e as registra em uma planilha. Ele percorre os cursos, extrai dados como nome do curso, professores, alunos e links, e os insere na planilha.
+
+A função enviarPlanilhaPorEmail() converte a planilha em um arquivo PDF e o anexa a um e-mail para ser enviado a um destinatário especificado.
+
+Em resumo, o código automatiza a criação de uma lista de disciplinas do Google Classroom em uma planilha e permite enviá-la por e-mail como um arquivo PDF.
