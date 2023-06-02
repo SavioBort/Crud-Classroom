@@ -1,0 +1,86 @@
+function listarDisciplinas() {
+  var sheet = SpreadsheetApp.openById("1oGLJYD0aGc7CKPOMNJBBPvVE7khti1GxZWlKu8VC_6w").getActiveSheet();
+  sheet.clear();
+  sheet.appendRow(["Disciplina", "Professor", "E-mail", "Quantidade de Alunos", "Url", "Totvs Código"]);
+
+  function b64DecodeUnicode(str) {
+    // Convert the web safe base64 string to a normal base64 string
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    // Decode the base64 string
+    var decoded = Utilities.base64Decode(str);
+    // Convert the decoded string to UTF-8
+    var utf8 = Utilities.newBlob(decoded).getDataAsString();
+    return utf8;
+  }
+
+  function b64EncodeUnicode(str) {
+    // Encode the string in UTF-8
+    var utf8 = Utilities.newBlob(str).getDataAsString();
+    // Convert the UTF-8 string to a base64 string
+    var base64 = Utilities.base64Encode(utf8);
+    // Convert the base64 string to a web safe base64 string
+    var webSafeBase64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return webSafeBase64;
+  }
+
+  var nextPageToken = '';
+  do {
+    var courses = Classroom.Courses.list({pageSize: 1000, pageToken: nextPageToken});
+    nextPageToken = courses.nextPageToken;
+    courses = courses.courses;
+
+    for (var i = 0; i < courses.length; i++) {
+      var course = courses[i];
+      if (course.courseState == "ARCHIVED") {
+        continue;
+      }
+      var courseName = course.name;
+      var courseId = course.id;
+
+      var teachers = Classroom.Courses.Teachers.list(courseId).teachers;
+      var teacherNames = [];
+      var teacherEmails = [];
+
+      if (teachers) {
+        for (var j = 0; j < teachers.length; j++) {
+          teacherNames.push(teachers[j].profile.name.fullName);
+          teacherEmails.push(teachers[j].profile.emailAddress);
+        }
+      }
+
+      var students = []; // Redefinir a variável students para uma matriz vazia
+
+      var studentsPageToken = '';
+      do {
+        var page = Classroom.Courses.Students.list(courseId, { pageSize: 1000, pageToken: studentsPageToken });
+        studentsPageToken = page.nextPageToken;
+        students = students.concat(page.students);
+      } while (studentsPageToken);
+
+      var numStudents = students.length || 0; // Definir 0 quando não há alunos
+
+      var courseLink = "" + courseId;
+      var encodedLink = Utilities.base64EncodeWebSafe(courseLink);
+      var completeLink = "https://classroom.google.com/c/" + encodedLink;
+
+      sheet.appendRow([courseName, teacherNames.join(", "), teacherEmails.join(", "), numStudents, completeLink, b64DecodeUnicode(encodedLink)]);
+    }
+  } while (nextPageToken);
+}
+
+
+function enviarPlanilhaPorEmail() {
+  // Obter a planilha ativa
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Converter a planilha para PDF
+  var excel = spreadsheet.getBlob().setContentType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').getBytes();
+
+
+  // Anexar o PDF em um email
+  var recipient = 'digite seu email';
+  var subject = 'Planilha de Classroom';
+  var body = 'Segue em anexo a planilha Classroom.';
+  GmailApp.sendEmail(recipient, subject, body, {attachments: [{fileName: 'Planilha.xls', content: excel, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}]});
+
+}
